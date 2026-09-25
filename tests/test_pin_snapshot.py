@@ -82,33 +82,36 @@ def test_pin_writes_digest_size_and_module_revision(tmp_path):
 def test_pin_refuses_a_digest_that_disagrees_with_the_file_name(tmp_path):
     root = _setup(tmp_path, DATA)
     before = (root / MANIFEST).read_text()
+    module_before = (root / MODULE).read_text()
     code = pin_snapshot.pin(root, download=_fake_download(b"tampered", []), load_check=lambda p: "ok")
     assert code == 1
     assert (root / MANIFEST).read_text() == before
-    assert 'MODEL_REVISION = "unpinned"' in (root / MODULE).read_text()
+    assert (root / MODULE).read_text() == module_before
 
 
 def test_pin_refuses_a_checkpoint_that_does_not_load(tmp_path):
     root = _setup(tmp_path, DATA)
     before = (root / MANIFEST).read_text()
+    module_before = (root / MODULE).read_text()
 
     def broken(_path):
         raise RuntimeError("Missing key(s) in state_dict")
 
     assert pin_snapshot.pin(root, download=_fake_download(DATA, []), load_check=broken) == 1
     assert (root / MANIFEST).read_text() == before
-    assert 'MODEL_REVISION = "unpinned"' in (root / MODULE).read_text()
+    assert (root / MODULE).read_text() == module_before
 
 
 def test_dry_run_writes_nothing(tmp_path):
     root = _setup(tmp_path, DATA)
     before = (root / MANIFEST).read_text()
+    module_before = (root / MODULE).read_text()
     assert (
         pin_snapshot.pin(root, dry_run=True, download=_fake_download(DATA, []), load_check=lambda p: "ok")
         == 0
     )
     assert (root / MANIFEST).read_text() == before
-    assert 'MODEL_REVISION = "unpinned"' in (root / MODULE).read_text()
+    assert (root / MODULE).read_text() == module_before
 
 
 def test_committed_manifest_names_the_torchvision_prefix():
