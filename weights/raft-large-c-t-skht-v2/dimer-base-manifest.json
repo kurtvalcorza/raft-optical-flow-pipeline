@@ -3,14 +3,14 @@
   "formatVersion": 1,
   "modelKey": "raft-large-c-t-skht-v2",
   "modelId": "torchvision/raft_large",
-  "revision": "unpinned",
+  "revision": "ff5fadd56d26b40647388883af1547351ea17868b765c05b27231e72dd16a322",
   "files": [
     {
       "path": "raft_large_C_T_SKHT_V2-ff5fadd5.pth",
       "url": "https://download.pytorch.org/models/raft_large_C_T_SKHT_V2-ff5fadd5.pth",
-      "bytes": null,
-      "sha256": null
+      "bytes": 21106607,
+      "sha256": "ff5fadd56d26b40647388883af1547351ea17868b765c05b27231e72dd16a322"
     }
   ],
-  "totalBytes": null
+  "totalBytes": 21106607
 }

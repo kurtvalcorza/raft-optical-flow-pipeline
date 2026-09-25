@@ -156,8 +156,8 @@ def pin(
         print(f"{module_path}: MODEL_REVISION constant not found; nothing written", file=sys.stderr)
         return 1
     shutil.move(str(staged), str(weights_dir / entry["path"]))
-    manifest_path.write_text(json.dumps(pinned, indent=2) + "\n", encoding="utf-8")
-    module_path.write_text(new_text, encoding="utf-8")
+    manifest_path.write_text(json.dumps(pinned, indent=2) + "\n", encoding="utf-8", newline="\n")
+    module_path.write_text(new_text, encoding="utf-8", newline="\n")
     print(f"wrote {manifest_path.relative_to(root)} and MODEL_REVISION in {module_path.relative_to(root)}")
 
     leftovers = [

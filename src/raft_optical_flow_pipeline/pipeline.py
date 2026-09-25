@@ -25,7 +25,7 @@ from .samples import read_flo
 MODEL_ID = "torchvision/raft_large"
 # The pinned identity of a URL-hosted checkpoint is the SHA-256 of its bytes. torchvision names the file
 # after the first 8 hex digits of that digest, so the URL is content-addressed; the full digest is pinned.
-MODEL_REVISION = "unpinned"
+MODEL_REVISION = "ff5fadd56d26b40647388883af1547351ea17868b765c05b27231e72dd16a322"
 MODEL_LICENSE = "bsd-3-clause"
 MODEL_KEY = "raft-large-c-t-skht-v2"
 DEFAULT_WEIGHTS_DIR = Path(__file__).resolve().parents[2] / "weights" / MODEL_KEY

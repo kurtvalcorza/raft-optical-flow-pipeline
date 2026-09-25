@@ -18,7 +18,7 @@ date_published_source: "month torchvision 0.12.0 was uploaded to PyPI (2022-03-1
 > ⚠️ **Provided for research, training, and evaluation purposes only.** Model weights are redistributed unmodified under their upstream license, which controls your use, including any commercial use or redistribution; the accompanying code and notebooks are released under this repository's license. All of it is supplied **"as is"**, without warranty of any kind, and has not been validated for production, clinical, or safety-critical use. Running the notebooks downloads third-party weights and datasets governed by their own licenses and consumes compute on your own Colab/Kaggle account. To the maximum extent permitted by law, the maintainers of this repository and the DIMER platform accept no liability for any damages arising from their use. Hosting implies no affiliation with or endorsement by the original authors.
 
 > [!IMPORTANT]
-> The upstream checkpoint is **not yet pinned**. `MODEL_REVISION` is the sentinel `"unpinned"` and the manifest records no SHA-256 digest and no byte size. Until `python tools/pin_snapshot.py` downloads the file, checks it, and records both, the package refuses to stage, verify or load the weights, and the tutorial cannot run.
+> The upstream checkpoint is pinned to the SHA-256 of its bytes, `ff5fadd56d26b40647388883af1547351ea17868b765c05b27231e72dd16a322`, and the manifest records that digest and the byte size. No execution with the pinned weights has been recorded yet, so this card claims no measured value for this repository.
 
 ---
 
@@ -46,7 +46,7 @@ This repository adds gradient fine-tuning on a caller's frame pairs with ground-
 
 What this repository adds to the upstream weights:
 
-- `verify_snapshot` and `stage_missing_files`: manifest checks and staging of the one checkpoint file from its manifest URL, both refusing to run while the checkpoint is unpinned;
+- `verify_snapshot` and `stage_missing_files`: manifest checks and staging of the one checkpoint file from its manifest URL, both refusing to run if `MODEL_REVISION` is ever reset to the `"unpinned"` sentinel;
 - `RaftPipeline.from_pretrained`: construction with `weights=None` (nothing downloaded by torchvision), then `torch.load(..., weights_only=True)` and `load_state_dict(strict=True)` from the verified file only;
 - `estimate`: input checks, torchvision's `OpticalFlow` preprocessing, padding to a multiple of 8 px and cropping back, and a finite `(H, W, 2)` flow array;
 - `validate_inputs`, `validate_dataset`, `read_flow_records` and `evaluation_report`: the validation and single-pair evaluation stages, with a zero-flow baseline;
@@ -197,9 +197,9 @@ The following uses are prohibited even where the model would work:
 ## Immutable provenance
 
 - Model: `torchvision/raft_large` (torchvision builder `raft_large`, weights `Raft_Large_Weights.C_T_SKHT_V2`, the builder's default).
-- Revision: **not yet pinned** (`MODEL_REVISION = "unpinned"`). A URL-hosted file has no commit, so the pinned revision is the SHA-256 of the checkpoint's bytes. `python tools/pin_snapshot.py` downloads the file, checks that its SHA-256 starts with `ff5fadd5` (the prefix in its file name), strict-loads it into the architecture, and records the full digest and the byte size.
+- Revision: `ff5fadd56d26b40647388883af1547351ea17868b765c05b27231e72dd16a322`. A URL-hosted file has no commit, so the pinned revision is the SHA-256 of the checkpoint's bytes. `python tools/pin_snapshot.py` pinned it on 2026-09-25: it downloaded the file, checked that its SHA-256 starts with `ff5fadd5` (the prefix in its file name), strict-loaded it into the architecture, and recorded the full digest and the byte size.
 - Checkpoint manifest: `weights/raft-large-c-t-skht-v2/dimer-base-manifest.json`, format `dimer_url_snapshot`, one file.
-- Checkpoint: `raft_large_C_T_SKHT_V2-ff5fadd5.pth` at `https://download.pytorch.org/models/raft_large_C_T_SKHT_V2-ff5fadd5.pth`; SHA-256 and byte size not yet recorded. torchvision's weight metadata lists the file as 20.129 MB.
+- Checkpoint: `raft_large_C_T_SKHT_V2-ff5fadd5.pth` at `https://download.pytorch.org/models/raft_large_C_T_SKHT_V2-ff5fadd5.pth`; 21,106,607 bytes, SHA-256 `ff5fadd56d26b40647388883af1547351ea17868b765c05b27231e72dd16a322`. torchvision's weight metadata lists the file as 20.129 MB, which agrees.
 - Loader: `raft_large(weights=None, progress=False)`, then `load_state_dict(torch.load(<verified file>, map_location="cpu", weights_only=True), strict=True)`.
 
 ## Input/output contract

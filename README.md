@@ -2,12 +2,12 @@
 
 DIMER pipeline for **RAFT-Large with torchvision's `C_T_SKHT_V2` weights** (`torchvision/raft_large`), the recurrent all-pairs model for dense two-frame optical flow. The pipeline loads the checkpoint only from a digest-verified local file, returns a per-pixel `(u, v)` displacement field between two frames, scores it by end-point error against a zero-flow baseline when ground truth is available, and adds a bounded fine-tuning workflow with RAFT's sequence loss that exports a SafeTensors adapter.
 
-> **The upstream checkpoint is not yet pinned.** `MODEL_REVISION` is `"unpinned"` and the manifest records the download URL but no SHA-256 digest and no byte size. Every weight operation refuses to run until `python tools/pin_snapshot.py` has recorded both (see [Pinning the checkpoint](#pinning-the-checkpoint)).
+> **The upstream checkpoint is pinned** (pinned 2026-09-25) to the SHA-256 of its bytes, `ff5fadd56d26b40647388883af1547351ea17868b765c05b27231e72dd16a322`. The manifest records the download URL, that digest and the byte size (21,106,607); the digest starts with the `ff5fadd5` prefix in the file name, and the file strict-loaded into the architecture. No execution with the pinned weights is recorded yet (see [Release status](#release-status)).
 
 ## Upstream alignment
 
 - Model: `torchvision/raft_large` (builder `raft_large`, weights `Raft_Large_Weights.C_T_SKHT_V2`, the builder's default)
-- Revision: not yet pinned (`unpinned`); once pinned, the SHA-256 of the checkpoint file
+- Revision: `ff5fadd56d26b40647388883af1547351ea17868b765c05b27231e72dd16a322`, the SHA-256 of the checkpoint file
 - Weights host: `https://download.pytorch.org/models/raft_large_C_T_SKHT_V2-ff5fadd5.pth` (not the Hugging Face Hub)
 - Upstream code license: BSD-3-Clause (torchvision); the training datasets carry their own terms
 - Upstream task: dense optical flow, trained on FlyingChairs and FlyingThings3D, then fine-tuned on Sintel, KITTI, HD1K and FlyingThings3D
@@ -37,12 +37,12 @@ Install into a Python 3.12 environment that already holds the pinned dependencie
 
 ## Pinning the checkpoint
 
-From the repository root, with network access to download.pytorch.org:
+The checkpoint is pinned (see [Upstream alignment](#upstream-alignment)). To re-pin it, from the repository root with network access to download.pytorch.org:
 
 1. Run `python tools/pin_snapshot.py`. It downloads the manifest URL, checks that the file's SHA-256 starts with `ff5fadd5` (the prefix in its name), strict-loads it into `raft_large`, moves it into `weights/raft-large-c-t-skht-v2/`, and writes the digest and byte size into the manifest and the digest into `MODEL_REVISION`.
 2. Commit, then run `python tools/build_notebook.py` and commit the regenerated notebook.
-3. Replace the "not yet pinned" statements in `README.md`, `MODEL_CARD.md`, `STATUS.md`, `docs/WEIGHTS.md`, `tutorials/README.md` and `docs/release-verification.md` with the digest and byte size.
-4. Run `python tools/validate_release_assets.py` and `pytest`. The validator fails while any document still says the checkpoint is not yet pinned.
+3. Update the digest and byte size cited in `README.md`, `MODEL_CARD.md`, `STATUS.md`, `docs/WEIGHTS.md`, `tutorials/README.md` and `docs/release-verification.md`.
+4. Run `python tools/validate_release_assets.py` and `pytest`. A new pin invalidates any recorded execution, so the status returns to Candidate until the new checkpoint is run.
 
 ## Weights layout
 
@@ -64,7 +64,7 @@ weights/raft-large-c-t-skht-v2/
 
 ## Release status
 
-**Candidate.** The checkpoint is not yet pinned and no execution with the pinned weights is recorded. Static checks, unit tests and the small-model test do not constitute notebook execution evidence; `docs/release-verification.md` defines the release gate.
+**Candidate.** The checkpoint is pinned (SHA-256 `ff5fadd56d26…`), but no execution with the pinned weights is recorded. Static checks, unit tests and the small-model test do not constitute notebook execution evidence; `docs/release-verification.md` defines the release gate.
 
 ## Documentation
 
