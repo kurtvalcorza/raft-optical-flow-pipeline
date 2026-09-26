@@ -18,7 +18,7 @@ date_published_source: "month torchvision 0.12.0 was uploaded to PyPI (2022-03-1
 > ⚠️ **Provided for research, training, and evaluation purposes only.** Model weights are redistributed unmodified under their upstream license, which controls your use, including any commercial use or redistribution; the accompanying code and notebooks are released under this repository's license. All of it is supplied **"as is"**, without warranty of any kind, and has not been validated for production, clinical, or safety-critical use. Running the notebooks downloads third-party weights and datasets governed by their own licenses and consumes compute on your own Colab/Kaggle account. To the maximum extent permitted by law, the maintainers of this repository and the DIMER platform accept no liability for any damages arising from their use. Hosting implies no affiliation with or endorsement by the original authors.
 
 > [!IMPORTANT]
-> The upstream checkpoint is pinned to the SHA-256 of its bytes, `ff5fadd56d26b40647388883af1547351ea17868b765c05b27231e72dd16a322`, and the manifest records that digest and the byte size. No execution with the pinned weights has been recorded yet, so this card claims no measured value for this repository.
+> The upstream checkpoint is pinned to the SHA-256 of its bytes, `ff5fadd56d26b40647388883af1547351ea17868b765c05b27231e72dd16a322`, and the manifest records that digest and the byte size. Default-path execution recorded on 2026-09-25 (Kaggle T4); REL12 BYOD exercise pending before promotion. The measured values under Metrics come from that one run: one rendered demonstration pair, and one seeded split of 10 synthetic held-out pairs, one runtime. They are tutorial evidence, not a benchmark.
 
 ---
 
@@ -76,7 +76,8 @@ A user is expected to know the following before relying on the output:
 - flow is an estimate of apparent motion, not of physical motion: a moving shadow or a change of lighting can produce flow, and a textureless moving surface can produce none;
 - pixels that are occluded in frame 2, or that leave the frame, have no true correspondence, and the model still returns a value for them;
 - end-point error, and every other accuracy figure, can only be measured on pairs with ground-truth flow that the user supplies;
-- a fine-tune on a few dozen pairs demonstrates the workflow and does not produce a deployable model.
+- a fine-tune on a few dozen pairs demonstrates the workflow and does not produce a deployable model;
+- in the recorded tutorial run, more updates were not always better (32 updates gave `epe` 0.1893 against 0.1625 at 12 on the demonstration pair), a blank textureless pair produced up to 0.8614 px of spurious motion, and the adapted model was slightly worse than the pretrained one on one of three unseen pairs.
 
 ###### Out-of-scope use cases
 
@@ -104,7 +105,7 @@ The tutorial's sample data is itself an instrument: textured noise moved by whol
 
 ###### Environment
 
-**Operating environment.** Python 3.12 with the pins in `pyproject.toml`: `torch==2.14.0`, `torchvision==0.29.0`, `safetensors==0.8.0`, `numpy==2.5.3`, `pillow==11.3.0`. Computation is float32. The code runs on CPU and uses CUDA automatically when available. torchvision supplies the architecture and the `OpticalFlow` preprocessing. No run with the pinned weights has been recorded yet, so no runtime, memory or throughput figure is given.
+**Operating environment.** Python 3.12 with the pins in `pyproject.toml`: `torch==2.14.0`, `torchvision==0.29.0`, `safetensors==0.8.0`, `numpy==2.5.3`, `pillow==11.3.0`. Computation is float32. The code runs on CPU and uses CUDA automatically when available. torchvision supplies the architecture and the `OpticalFlow` preprocessing. One run with the pinned weights is recorded: Kaggle Tesla T4, 2026-09-25 UTC, torch 2.14.0+cu130 (CUDA 13.0), torchvision 0.29.0+cu130, `cuda:0`. The whole notebook took 277.4 s wall including installs, one kernel restart and the 21 MB checkpoint download; the fine-tune cell (3 epochs on 30 pairs of 256×256) took about 9 s. No memory or throughput figure was measured.
 
 **Data environment.** The pretrained model assumes two consecutive frames of one scene with moderate motion. An adapted model assumes inference pairs that resemble its training pairs in camera, scene and motion range. The tutorial's adaptation data is synthetic, so a model adapted on it transfers to rendered textures moving by whole pixels and to nothing else. When these assumptions fail, the model still returns a dense flow field. The pipeline reports no signal that the distribution has shifted.
 
@@ -123,7 +124,18 @@ EPE is the benchmark's headline number and is dominated by large errors. The out
 
 `evaluation_report(result, truth, valid)` covers one pair, with the zero-flow baseline and the verdict `sample-sanity`. Without ground truth it returns `not-measurable` and names the data that would be needed.
 
-torchvision's weight metadata reports end-point errors of 1.819 on the Sintel test clean pass and 3.067 on the final pass. Those values are upstream-reported, and this repository does not reproduce them. No value from this repository has been recorded yet.
+torchvision's weight metadata reports end-point errors of 1.819 on the Sintel test clean pass and 3.067 on the final pass. Those values are upstream-reported, and this repository does not reproduce them.
+
+Values measured by this repository (one run on Kaggle Tesla T4, 2026-09-25 UTC; exact notebook blob `96727669c7a6`, commit `97b4ab9`; one pass, no dispersion estimate):
+
+- **Demonstration pair** (256×256, synthetic textured noise with exact flow, 61,968 valid pixels, 12 updates): `epe` 0.1625, `1px` 0.9882, `3px` 0.9914, `5px` 0.9927, `angular_error_deg` 0.9395; zero-flow baseline `epe` 6.8937, `1px`/`3px`/`5px` 0.0, angle 81.6417. This is a `sample-sanity` check on one rendered pair, not a flow benchmark.
+- **Update-count sweep** on the same pair, `epe`: 1 update 0.4254, 4 updates 0.1714, 12 updates 0.1625, **32 updates 0.1893** (worse than 12).
+- **Degenerate probes** (zero true motion): a static pair gave `epe` 0.0095 (max 0.0393 px); a **blank pair gave `epe` 0.2425 with up to 0.8614 px of spurious motion**.
+- **Adaptation** (40 rendered pairs, mean displacement 5.3060 px, split seed 0 into 30 train and 10 held-out pairs; feature and context encoders frozen, 3,120,960 of 5,257,536 parameters trained, 3 epochs, loss 0.4394 → 0.3614). Held-out, zero-flow / pretrained / adapted: `epe` 4.9648 / 0.1649 / 0.1446, `1px` 0.0018 / 0.9855 / 0.9878, `3px` 0.1920 / 0.9913 / 0.9925, `5px` 0.6527 / 0.9938 / 0.9945, `angular_error_deg` 75.3039 / 1.3134 / 1.1965, `pixel_weighted_epe` 4.9421 / 0.1638 / 0.1435. The held-out pairs come from the same generator as the training pairs and the pretrained error on them is already small, so the gain says nothing about real video.
+- **Unseen rendered pairs** (3 pairs), pretrained → adapted `epe`: 0.0978 → 0.0921, **0.0976 → 0.0987** (worse), 0.2836 → 0.2161.
+- **Adapter reload:** mean endpoint difference 0.0 px against a tolerance of 0.001 px, equivalent.
+
+The BYOD branches were not exercised in this run.
 
 ###### Decision thresholds
 
@@ -133,7 +145,7 @@ The 1, 3 and 5 px outlier thresholds are evaluation conventions, not acceptance 
 
 ###### Approaches to uncertainty and variability
 
-Every EPE value is one pass over one held-out split: no repeated runs, no cross-validation, no bootstrap, and no confidence interval. The tutorial's held-out split has 10 rendered pairs, so its values are tutorial evidence only.
+Every EPE value, including the recorded one, is one pass over one held-out split: no repeated runs, no cross-validation, no bootstrap, and no confidence interval. The tutorial's held-out split has 10 rendered pairs, so its values are tutorial evidence only.
 
 Sources of run-to-run variability:
 
@@ -214,7 +226,7 @@ The following uses are prohibited even where the model would work:
 
 ## Verification records
 
-No execution with the pinned weights has been recorded. The offline test suite runs the full `raft_large` architecture with random weights on 128×128 rendered pairs through fine-tuning, evaluation and adapter reload; that exercises the code path and is not a result about this model. `docs/release-verification.md` holds the release gate and the record table.
+Default-path execution recorded on 2026-09-25 (Kaggle T4): exact notebook blob `96727669c7a6` at commit `97b4ab9`, 277.4 s, 14/14 post-restart code cells, both BYOD branches off; measured values are under Metrics. REL12 BYOD exercise pending before promotion. The offline test suite runs the full `raft_large` architecture with random weights on 128×128 rendered pairs through fine-tuning, evaluation and adapter reload; that exercises the code path and is not a result about this model. `docs/release-verification.md` holds the release gate and the record table.
 
 ## References
 

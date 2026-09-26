@@ -2,7 +2,7 @@
 
 DIMER pipeline for **RAFT-Large with torchvision's `C_T_SKHT_V2` weights** (`torchvision/raft_large`), the recurrent all-pairs model for dense two-frame optical flow. The pipeline loads the checkpoint only from a digest-verified local file, returns a per-pixel `(u, v)` displacement field between two frames, scores it by end-point error against a zero-flow baseline when ground truth is available, and adds a bounded fine-tuning workflow with RAFT's sequence loss that exports a SafeTensors adapter.
 
-> **The upstream checkpoint is pinned** (pinned 2026-09-25) to the SHA-256 of its bytes, `ff5fadd56d26b40647388883af1547351ea17868b765c05b27231e72dd16a322`. The manifest records the download URL, that digest and the byte size (21,106,607); the digest starts with the `ff5fadd5` prefix in the file name, and the file strict-loaded into the architecture. No execution with the pinned weights is recorded yet (see [Release status](#release-status)).
+> **The upstream checkpoint is pinned** (pinned 2026-09-25) to the SHA-256 of its bytes, `ff5fadd56d26b40647388883af1547351ea17868b765c05b27231e72dd16a322`. The manifest records the download URL, that digest and the byte size (21,106,607); the digest starts with the `ff5fadd5` prefix in the file name, and the file strict-loaded into the architecture. Default-path execution recorded on 2026-09-25 (Kaggle T4); REL12 BYOD exercise pending before promotion (see [Release status](#release-status)).
 
 ## Upstream alignment
 
@@ -64,7 +64,7 @@ weights/raft-large-c-t-skht-v2/
 
 ## Release status
 
-**Candidate.** The checkpoint is pinned (SHA-256 `ff5fadd56d26…`), but no execution with the pinned weights is recorded. Static checks, unit tests and the small-model test do not constitute notebook execution evidence; `docs/release-verification.md` defines the release gate.
+**Candidate.** The checkpoint is pinned (SHA-256 `ff5fadd56d26…`). Default-path execution recorded on 2026-09-25 (Kaggle T4): the exact notebook blob `96727669c7a6` (commit `97b4ab9`) ran top-to-bottom with both BYOD branches off. On the rendered demonstration pair the pretrained model reached `epe` 0.1625 (zero-flow 6.8937); on one seeded split of 10 synthetic held-out pairs the fine-tune moved `epe` 0.1649 → 0.1446; one runtime. 32 updates were worse than 12, a blank pair produced up to 0.8614 px of spurious motion, and the adapted model was slightly worse on one of three unseen pairs. REL12 BYOD exercise pending before promotion: release step 7 has not been run. Static checks, unit tests and the small-model test do not constitute notebook execution evidence; `docs/release-verification.md` defines the release gate.
 
 ## Documentation
 
