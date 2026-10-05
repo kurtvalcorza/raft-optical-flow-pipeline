@@ -21,7 +21,44 @@ TEMPLATE = {
     "notebook_name": "raft_optical_flow_colab.ipynb",
     "profile": "E2E",
     "mode": "GUIDED",
+    # SWP-R (2026-10-05 fleet sweep): nothing is pip-installed into the notebook kernel. The fleet's uv isolated-environment
+    # mechanism (build_notebook.py/2.2): managed CPython, a size- and SHA-256-verified uv wheel, and a lock compiled from the
+    # pyproject pins with `uv pip compile pyproject.toml --python-version 3.12 --python-platform x86_64-manylinux_2_28
+    # --generate-hashes --only-binary :all: -o tutorials/requirements-colab.lock.txt` (uv 0.12.15).
+    "isolated_runtime": True,
+    "infrastructure_labels": True,
+    "managed_python": "3.12.12",
+    "uv": {
+        "version": "0.12.15",
+        "url": "https://files.pythonhosted.org/packages/1e/fd/432451d732917c49152a291de3ef171aa6b0f1a22d39780fb2c1f085ca4c/uv-0.12.15-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+        "bytes": 20081404,
+        "sha256": "aee9802f46bae436bd91751bb33ddeb379ef1596b5c19df193219d545d244b60",
+    },
+    "lock": "tutorials/requirements-colab.lock.txt",
     "pipeline_class": "RaftPipeline",
+    "guided": {
+        "opening": [
+            '**Who this notebook is for.** The intended audience is a learner who knows basic Python, PIL and NumPy, has used Colab or Jupyter, and wants to see '
+            'how a dense optical-flow model is scored against exact ground truth, where its estimates go wrong, and what a bounded fine-tune of its update block '
+            'changes. No prior experience with RAFT or optical flow is assumed; terms are explained where they first matter and again in the **Glossary** at the '
+            'end. A GPU runtime (T4) is the documented runtime; CPU works, slowly.\n\n**Input → Model → Output.**\n\n| | Flow estimation | Bounded fine-tune |\n|---|---|---|\n| '
+            'Input | two frames of one size (PIL images) | 40 rendered frame pairs with exact flow and validity masks (30 training, 10 held out) |\n| Model | '
+            "torchvision's RAFT-Large (`C_T_SKHT_V2`), a digest-pinned checkpoint, 12 recurrent updates | the same model; only the recurrent update block and "
+            'upsampling mask predictor train (3.1 M of 5.3 M parameters), encoders and BatchNorm frozen |\n| Output | an `(H, W, 2)` flow field in pixels; EPE, '
+            '1/3/5 px rates and angular error beside a zero-flow baseline | held-out EPE before and after, flow on unseen pairs, and a SafeTensors adapter that '
+            'reloads to the same flow |\n\n**How to use this notebook.** Choose a GPU runtime (**Runtime → Change runtime type → T4 GPU**), then **Runtime → Run '
+            "all**. Run all completes in one pass: Section 1 installs nothing into the notebook's own Python, so no restart is needed. Sections 1–3 are "
+            '**infrastructure** — the isolated environment, the carried package and the pinned checkpoint — and their cells are collapsed; you may run them without '
+            'studying them. The learning path starts in Section 4. Form fields (`# @param`) are the only values meant to be edited, and the defaults reproduce the '
+            'recorded run. Before each principal result the notebook asks you to **Predict**; after it come **What to notice** and a collapsible **Check your '
+            'reasoning** with a worked answer from the recorded run (the Kaggle Tesla T4 run of 25 September 2026 recorded in `docs/release-verification.md`; GPU '
+            'kernels are not deterministic, so your last digits may differ). **Troubleshooting**, a **Glossary** and a **Conclusion** template are at the end. '
+            'Writing your predictions down is optional.\n\n**Roadmap:** 1–3 infrastructure → 4 the pretrained model on a pair with exact flow *(core concept: EPE and '
+            'the zero-flow baseline)* → 5 recurrent updates and degenerate probes *(evaluation practice)* → 6 the labelled dataset and validation → 7 split and '
+            'pre-adaptation baseline *(evaluation practice)* → 8 bounded fine-tuning *(core concept)* → 9 held-out evaluation → 10 unseen pairs → 11 adapter export '
+            'and reload *(engineering)* → 12 outputs → 13 optional BYOD → interpretation, troubleshooting, glossary and your conclusion.'
+        ],
+    },
     "weights_key": "raft-large-c-t-skht-v2",
     "weights_host": {
         "name": "download.pytorch.org",
@@ -97,12 +134,13 @@ TEMPLATE = {
         "thousands of steps on several GPUs; the tutorial runs a few epochs on 30 pairs); stereo disparity; scene flow; video interpolation."
     ),
     "prerequisites": [
-        "- **Runtime:** a fresh supported runtime (Google Colab or Jupyter, Python 3.12). A CUDA GPU such as a Colab or Kaggle T4 is the documented runtime for the fine-tuning stages and is used automatically when present; the notebook also runs on CPU, much more slowly. Runtimes are not measured in this revision. The pinned `torch==2.14.0` wheel is the largest download.",
+        "- **Runtime:** a fresh supported runtime (Google Colab or Jupyter, Python 3.12). A CUDA GPU such as a Colab or Kaggle T4 is the documented runtime for the fine-tuning stages and is used automatically when present; the notebook also runs on CPU, much more slowly. Runtimes are not measured in this revision. Building the isolated environment (the pinned `torch==2.14.0` wheel is its largest download; reused on a re-run) is the slowest setup step.",
         "- **Knowledge:** basic Python, PIL and NumPy; images as `(H, W)` pixel grids; a flow field as an `(H, W, 2)` array of `(u, v)` displacements in pixels; and the Euclidean distance between two vectors.",
         "- **Data:** the default path generates everything in code with `samples.py` and downloads no dataset: one 256×256 demonstration pair and a 40-pair labelled dataset, each with exact flow and a validity mask. BYOD is optional and off by default. Expected BYOD input: two frames of one size, or a directory holding `pairs.json` — a list of `{'frame1': 'a.png', 'frame2': 'b.png', 'flow': 'a.flo', 'valid': 'a_valid.png'}` objects, where `flow` is a Middlebury `.flo` file or a `.npy` array of shape `(H, W, 2)` and `valid` is optional — and the files it names. Do not upload confidential or restricted data to a hosted notebook environment unless you are authorized to do so; uploaded inputs stay in this runtime and are not sent to any inference API.",
     ],
     "run_all": (
-        "Selecting **Run all** in a fresh supported runtime installs the pinned dependencies, stages and digest-verifies the pinned checkpoint, "
+        "Selecting **Run all** in a fresh supported runtime builds an isolated environment from the hash-locked pins (nothing is "
+        "installed into the notebook's own Python, so no restart is needed and Run all completes in one pass), stages and digest-verifies the pinned checkpoint, "
         "estimates flow on a rendered pair with exact ground truth, validates the 40-pair dataset, splits it into training and held-out parts, "
         "measures the pre-adaptation baseline, **runs the bounded fine-tune**, re-evaluates on the held-out split, estimates flow on unseen "
         "pairs, exports the adapter, reloads it onto a fresh base model to verify the flow, and writes machine-readable outputs with provenance. "
@@ -129,7 +167,8 @@ TEMPLATE = {
                 "- **1px / 3px / 5px**: the fraction of valid pixels whose error is below that many pixels. Higher is better.\n"
                 "- **Angular error**: the mean angle in degrees between the space-time vectors `(u, v, 1)` of the prediction and the truth.\n\n"
                 "Every score is printed next to the **zero-flow baseline**, which predicts no motion anywhere. Its EPE equals the mean true "
-                "displacement, so a model is only useful where it beats that row. One pair gives the verdict `sample-sanity`, not a benchmark."
+                "displacement, so a model is only useful where it beats that row. One pair gives the verdict `sample-sanity`, not a benchmark.\n\n"
+                "**Predict before running:** the background moves by about 7 px on average. What end-point error will zero flow score, and will RAFT be closer to 0.1 px or to 1 px?"
             ),
             "code": (
                 "import hashlib\n"
@@ -169,6 +208,14 @@ TEMPLATE = {
                 "strip"
             ),
         },
+        {
+            "md": (
+                '**What to notice:** the RAFT row against the zero-flow row, the validity fraction, the mismatched-size rejection, and the four-panel strip.\n\n<details><summary>Check '
+                'your reasoning</summary>Zero flow scores the mean true displacement; in the recorded run that was EPE 6.8937 against 0.1625 for RAFT, with 98.8 % of '
+                'valid pixels within 1 px. Integer shifts of textured frames are an easy case, which is why the zero-flow row, not 0, is the reference, and why one '
+                'rendered pair is `sample-sanity`, not a benchmark.</details>'
+            ),
+        },
         # ---------------------------------------------------------------- 5. Iterations & probes
         {
             "md": (
@@ -180,7 +227,8 @@ TEMPLATE = {
                 "- **Static pair:** the same textured frame twice. The true flow is zero everywhere, so any predicted motion is error.\n"
                 "- **Blank pair:** two featureless white frames. Motion is undetermined, because nothing can be matched. The cell reports the "
                 "mean predicted displacement; a large value is motion the model invented.\n\n"
-                "**What to look for:** EPE close to zero on the static pair, and a small mean displacement on the blank pair."
+                "**What to look for:** EPE close to zero on the static pair, and a small mean displacement on the blank pair.\n\n"
+                "**Predict before running:** will 32 updates always beat 12? And on two blank white frames, will the model report no motion at all?"
             ),
             "code": (
                 "iteration_sweep = {{}}\n"
@@ -194,6 +242,13 @@ TEMPLATE = {
                 "    speed = np.linalg.norm(flow, axis=2)\n"
                 "    degenerate[probe['id']] = {{'epe_vs_zero_truth': round(float(speed.mean()), 4), 'max_displacement_px': round(float(speed.max()), 4)}}\n"
                 "print(json.dumps(degenerate, indent=2))"
+            ),
+        },
+        {
+            "md": (
+                '**What to notice:** the EPE at 1, 4, 12 and 32 updates, and the static and blank probe values.\n\n<details><summary>Check your reasoning</summary>No and '
+                'no. In the recorded run EPE fell from 0.4254 (1 update) to 0.1625 (12) but rose to 0.1893 at 32 — more refinement can drift. The static pair was near '
+                'zero (EPE 0.0095), but the blank pair produced up to 0.8614 px of motion that does not exist: on featureless input the model invents flow.</details>'
             ),
         },
         # ---------------------------------------------------------------- 6. Dataset & Validation
@@ -233,7 +288,8 @@ TEMPLATE = {
                 "The fine-tune runs on its own copy of the verified model, `adapter`, so `pipe` stays the pretrained reference. The baseline is "
                 "that copy's held-out score before any update.\n\n"
                 "**The pretrained model already beats the zero-flow baseline here.** Textured frames moved by whole pixels are an easy case for "
-                "RAFT, so a large gap between the two baseline rows is expected. The fine-tune has to improve on the RAFT row, not on zero flow."
+                "RAFT, so a large gap between the two baseline rows is expected. The fine-tune has to improve on the RAFT row, not on zero flow.\n\n"
+                "*Evaluation practice.* **Predict before running:** why is a random split acceptable for these rendered pairs, when it would not be for frames cut from one video?"
             ),
             "code": (
                 'HOLDOUT = 0.25  # @param {{type:"number"}}\n'
@@ -247,6 +303,14 @@ TEMPLATE = {
                 "METRIC_KEYS = ('epe', '1px', '3px', '5px', 'angular_error_deg')\n"
                 "print(json.dumps({{'pretrained': {{k: round(baseline[k], 4) for k in METRIC_KEYS}},\n"
                 "                  'zero_flow': {{k: round(baseline['zero_flow_baseline'][k], 4) for k in METRIC_KEYS}}}}, indent=2))"
+            ),
+        },
+        {
+            "md": (
+                '**What to notice:** train 30 / held-out 10, the pretrained row against the zero-flow row on the held-out pairs.\n\n<details><summary>Check your '
+                'reasoning</summary>Every rendered pair comes from its own seed, so no two pairs share content and a random split cannot leak. Frames from one video '
+                'share scenes, so a random split there would test on near-copies of training frames. In the recorded run the held-out EPE was 0.1649 pretrained against '
+                '4.9648 for zero flow.</details>'
             ),
         },
         # ---------------------------------------------------------------- 8. Bounded Fine-Tuning
@@ -265,7 +329,8 @@ TEMPLATE = {
                 "- **Schedule:** `EPOCHS` epochs of AdamW at learning rate `2e-5` and weight decay `5e-5`, batch size 2, 12 recurrent updates, "
                 "gradients clipped to norm 1.0, float32, seed `SEED`.\n\n"
                 "**Read the loss as optimisation evidence only.** A falling loss says the optimizer is fitting the training pairs; the held-out "
-                "end-point error in the next section is the task evidence."
+                "end-point error in the next section is the task evidence.\n\n"
+                "**Predict before running:** with the encoders frozen, how many of the model's parameters will train?"
             ),
             "code": (
                 'LEARNING_RATE = 2e-5  # @param {{type:"number"}}\n'
@@ -284,6 +349,13 @@ TEMPLATE = {
                 "                                         'batch_size', 'learning_rate', 'optimizer', 'loss', 'precision', 'device')}}, indent=2))"
             ),
         },
+        {
+            "md": (
+                '**What to notice:** the trainable and total parameter counts, `freeze_encoders`, `batchnorm`, and the per-epoch losses.\n\n<details><summary>Check your '
+                'reasoning</summary>About three in five. In the recorded run 3,120,960 of 5,257,536 parameters trained; the loss fell 0.4394 → 0.3890 → 0.3614 over '
+                'three epochs. A falling training loss is optimisation evidence only; Section 9 is the task evidence.</details>'
+            ),
+        },
         # ---------------------------------------------------------------- 9. Evaluate Held-Out
         {
             "md": (
@@ -291,7 +363,8 @@ TEMPLATE = {
                 "`evaluate` re-runs on the same held-out pairs with the same number of updates as the baseline, so the rows are comparable. Each "
                 "metric is the mean over pairs, each pair weighing the same; `pixel_weighted_epe` weighs every valid pixel the same instead. These "
                 "are tutorial metrics from one pass over 10 synthetic pairs, with no dispersion estimate. A change of a few hundredths of a pixel "
-                "is within what a different seed can move."
+                "is within what a different seed can move.\n\n"
+                "*Evaluation practice.* **Predict before running:** the pretrained held-out EPE is already about 0.16 px. Will the fine-tune lower it on every held-out pair?"
             ),
             "code": (
                 "adapted = adapter.evaluate(held_out, num_flow_updates=NUM_FLOW_UPDATES)\n"
@@ -301,12 +374,21 @@ TEMPLATE = {
                 '    print(f"{{key:<18s}} {{zero:>10.4f}} {{baseline[key]:>11.4f}} {{adapted[key]:>10.4f}} {{adapted[key] - baseline[key]:>+10.4f}}")'
             ),
         },
+        {
+            "md": (
+                '**What to notice:** the change column for every metric, and `pixel_weighted_epe` beside the per-pair mean.\n\n<details><summary>Check your '
+                'reasoning</summary>In the recorded run, yes: held-out EPE went 0.1649 → 0.1446 and was lower on all 10 pairs (1 px rate 0.9855 → 0.9878). Ten rendered '
+                'pairs and one seed carry no dispersion estimate, and the model was fitted to renderings from the same generator, so this says nothing about camera '
+                'footage.</details>'
+            ),
+        },
         # ---------------------------------------------------------------- 10. New-data inference
         {
             "md": (
                 "## 10. Inference on unseen pairs\n\n"
                 "Three new pairs come from a seed the dataset never used (`NEW_DATA_SEED = 99`). The pretrained and the adapted pipelines estimate "
-                "flow on each, and both are scored against the exact flow."
+                "flow on each, and both are scored against the exact flow.\n\n"
+                "**Predict before running:** will the adapted model be better on all three unseen pairs?"
             ),
             "code": (
                 'NEW_DATA_SEED = 99  # @param {{type:"integer"}}\n\n'
@@ -319,6 +401,13 @@ TEMPLATE = {
                 "        row[f'{{name}}_epe'] = round(flow_metrics(flow, record['flow'], record['valid'])['epe'], 4)\n"
                 "    new_data_rows.append(row)\n"
                 "    print(json.dumps(row))"
+            ),
+        },
+        {
+            "md": (
+                '**What to notice:** pretrained against adapted EPE for each unseen pair.\n\n<details><summary>Check your reasoning</summary>No. In the recorded run two '
+                'pairs improved (0.0978 → 0.0921, 0.2836 → 0.2161) and one got slightly worse (0.0976 → 0.0987). A held-out mean can improve while individual cases '
+                'regress; report both.</details>'
             ),
         },
         # ---------------------------------------------------------------- 11. Export, reload & verify
@@ -346,6 +435,13 @@ TEMPLATE = {
                 "assert difference <= TOLERANCE_PX, f'reloaded flow differs by {{difference:.6f}} px on average'\n"
                 "reload_check = {{'pair': probe['id'], 'mean_endpoint_difference_px': difference, 'tolerance_px': TOLERANCE_PX, 'equivalent': True}}\n"
                 "print(reload_check)"
+            ),
+        },
+        {
+            "md": (
+                '**What to notice:** the adapter descriptor (tensor count, size, base digest) and `mean_endpoint_difference_px` against the tolerance.\n\n<details><summary>Check '
+                'your reasoning</summary>In the recorded run the 30-tensor, 12.5 MB adapter reloaded onto a fresh verified base and reproduced the flow exactly (mean '
+                'difference 0.0 px against a 0.001 px tolerance). Loading is not the check; reproducing the flow is.</details>'
             ),
         },
         # ---------------------------------------------------------------- 12. Outputs & provenance
@@ -511,6 +607,30 @@ TEMPLATE = {
         "**Try next.** Change `FREEZE_ENCODERS` to `False` and compare held-out EPE and runtime, or change `NUM_FLOW_UPDATES` and watch the "
         "EPE and the time per pair. To transfer the workflow, point `BYOD_DATASET_DIR` at frame pairs with ground-truth flow from your own "
         "domain, for example rendered from a simulator.\n\n"
+        '## Troubleshooting\n\n- **Section 1 stops with "This notebook needs a Linux x86_64 runtime"** — you are on Windows, macOS or an ARM machine. Use Google '
+        'Colab, Kaggle or a Linux x86_64 Jupyter server.\n- **The uv wheel fails its size/SHA-256 check, or a download in Section 1 times out** — run Section 1 '
+        'again; a complete environment built from the same lock is reused, an incomplete one is finished. If it repeats, the network is blocking or altering '
+        '`files.pythonhosted.org` or `pypi.org`.\n- **"The isolated environment\'s Python process exited"** — usually out of memory. Restart the session and '
+        'choose **Run all**.\n- **You re-ran Section 1 on its own** — nothing is lost: it keeps the running worker and every variable, so the cells after it '
+        'keep working. After a session restart, run from the top.\n- **Section 3 reports a size or SHA-256 mismatch, or cannot reach the Hub** — the message '
+        'names the file. Delete it from the snapshot folder Section 3 prints and run Section 3 again.\n- **Section 3 reports a size or SHA-256 mismatch for the '
+        'checkpoint** — the download from `download.pytorch.org` was cut short or altered; delete the file in the snapshot folder and run Section 3 again.\n- '
+        '**The fine-tune is slow** — you are on CPU; switch to a T4 GPU.\n- **Your numbers differ in the last digits from the recorded run** — GPU kernels (the '
+        "correlation lookup's backward pass) are not deterministic; the comparison between rows is the result.\n- **BYOD: a frame-size, `pairs.json` or "
+        'flow-shape refusal** — the message names the rule; frames must share one size inside the ceilings, and flow must be a `.flo` or `(H, W, 2)` `.npy` '
+        'file. Set `BYOD_IMAGE1_PATH`/`BYOD_IMAGE2_PATH` or `BYOD_DATASET_DIR` to skip the upload dialog.\n\n## Glossary\n\n- **Optical flow:** the per-pixel '
+        'displacement `(u, v)` that maps each point of frame 1 to where it appears in frame 2.\n- **Valid mask:** the pixels whose destination is visible in '
+        'frame 2; only these are scored.\n- **EPE (end-point error):** the mean distance in pixels between predicted and true displacement; lower is better.\n- '
+        '**1px / 3px / 5px:** the share of valid pixels whose error is under that many pixels.\n- **Angular error:** the mean angle between the space-time '
+        'vectors `(u, v, 1)` of prediction and truth.\n- **Zero-flow baseline:** predicting no motion anywhere; its EPE equals the mean true displacement.\n- '
+        "**Recurrent updates:** RAFT refines its estimate a fixed number of times; 12 by default.\n- **Sequence loss:** RAFT's training loss: the L1 error of "
+        'every intermediate estimate, later ones weighted more.\n- **Frozen encoders / BatchNorm:** the feature and context encoders keep their pretrained '
+        'weights, and normalisation statistics do not drift.\n- **Adapter:** the SafeTensors file holding only the tensors the fine-tune changed, reloaded onto '
+        'the verified base.\n- **Isolated environment:** the separate Python environment Section 1 builds from the hash lock; every later cell runs there.\n\n## '
+        "Conclusion (your notes)\n\nComplete these in your own words; the recorded run's values are in the **Check your reasoning** answers above.\n\n- On the "
+        "demonstration pair RAFT scored EPE ___ against zero flow's ___; the blank-pair probe showed ___.\n- The fine-tune moved held-out EPE from ___ to ___; "
+        'on unseen pairs ___.\n- The number I would not trust on its own is ___, because ___.\n- Before adapting on my own footage I would split by ___ and '
+        'compare against ___.\n\n'
         "## References\n\n"
         "- Teed, Z. and Deng, J. (2020). *RAFT: Recurrent All-Pairs Field Transforms for Optical Flow.* ECCV 2020. [arXiv:2003.12039](https://arxiv.org/abs/2003.12039).\n"
         "- torchvision model documentation: [raft_large](https://docs.pytorch.org/vision/stable/models/generated/torchvision.models.optical_flow.raft_large.html); upstream repository [pytorch/vision](https://github.com/pytorch/vision) — BSD-3-Clause; training recipe [references/optical_flow](https://github.com/pytorch/vision/tree/main/references/optical_flow).\n"
