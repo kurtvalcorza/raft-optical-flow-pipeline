@@ -1,6 +1,6 @@
 """Static release-asset validation for the RAFT-Large (C_T_SKHT_V2) optical-flow DIMER pipeline.
 
-Checks the STANDALONE tutorial notebook (DIMER Notebook Specification 2.1 §4), the tutorial
+Checks the STANDALONE tutorial notebook (DIMER Notebook Specification 2.2 §4), the tutorial
 registry, model card (DIMER Model Card Specification 1.2), README, STATUS.md and weight documentation
 for source conformance and cross-document identity consistency, the checkpoint pin state, and runs the
 generator parity checks (PAR1–PAR3).
@@ -40,9 +40,9 @@ REFERENCE_LINK = (
     "https://docs.pytorch.org/vision/stable/models/generated/torchvision.models.optical_flow.raft_large.html"
 )
 
-# NOTEBOOK_SPEC 2.1 §10.3: BYOD is gated off by default so the sample path runs top-to-bottom.
+# NOTEBOOK_SPEC 2.2 §10.3: BYOD is gated off by default so the sample path runs top-to-bottom.
 BYOD_GATES = ("USE_BYOD_IMAGE", "USE_BYOD_DATASET")
-# NOTEBOOK_SPEC 2.1 EXE2: every file-reading branch has a location field.
+# NOTEBOOK_SPEC 2.2 EXE2: every file-reading branch has a location field.
 LOCATION_FIELDS = ("BYOD_IMAGE1_PATH", "BYOD_IMAGE2_PATH", "BYOD_DATASET_DIR")
 
 EXPECTED_OUTPUTS = (
@@ -116,10 +116,10 @@ INSTALL_CELL_MARKER = "# dimer: kernel cell"
 # ---------------------------------------------------------------------------
 # Shared checks. Everything below is source/structure validation only. Passing
 # these checks is NOT clean-runtime execution evidence under DIMER Notebook
-# Specification 2.1; see docs/release-verification.md for the release gate.
+# Specification 2.2; see docs/release-verification.md for the release gate.
 # ---------------------------------------------------------------------------
 
-NOTEBOOK_SPEC = "2.1"
+NOTEBOOK_SPEC = "2.2"
 MODEL_CARD_SPEC = "1.2"
 ALLOWED_PROFILES = {"E2E", "ARTIFACT-INFERENCE", "TASK-INFERENCE", "MULTI-CAPABILITY", "SMOKE"}
 STATUS_TOKENS = ("Candidate", "Release-grade")

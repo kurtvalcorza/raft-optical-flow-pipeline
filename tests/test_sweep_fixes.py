@@ -79,6 +79,7 @@ def test_swp_r_carried_lock_is_the_committed_lock_and_pins_every_runtime_pin(not
     assert "'dimer_isolated_env_' + LOCK_SHA256[:12]" in source
 
 
+@pytest.mark.skipif(sys.platform != "linux", reason="the worker protocol uses Linux pass_fds")
 def test_swp_r_section_1_is_idempotent_and_keeps_the_live_worker(notebook, tmp_path, monkeypatch, capsys):
     """The real Section 1 cell, run twice with a stand-in interpreter: the matching environment is reused (no
     download) and the live worker, with every variable later cells created, is kept."""
