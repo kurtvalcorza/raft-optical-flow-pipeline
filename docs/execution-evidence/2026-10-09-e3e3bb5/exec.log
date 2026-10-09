@@ -1,0 +1,144 @@
+[colab] Parsing notebook '/home/kurt/colab-runs/raft-optical-flow-pipeline-e3e3bb5-15ac8a/raft_optical_flow_colab_e3e3bb5_colab-cli-t4.ipynb'...
+[colab] Executing cell 1/15 - Infrastructure: build (or reuse) the isolated environment and route later cells to it...
+{'isolated_environment': '/content/dimer_isolated_env_72a13d82ae25', 'reused': False, 'isolated_python': '3.12.12', 'kernel_python': '3.13.15', 'locked_packages': 33, 'setup_seconds': 51}
+{'routed_to': '/content/dimer_isolated_env_72a13d82ae25/bin/python', 'worker_pid': 830, 'worker_reused': False}
+[colab] Executing cell 2/15 - Infrastructure: record the runtime...
+{'notebook_source': {'repository': 'raft-optical-flow-pipeline', 'repository_revision': '1d4a15b255ca2dfb76ad544c6c312cf87f96eb67', 'embedded_module': 'src/raft_optical_flow_pipeline/pipeline.py', 'embedded_modules': ['src/raft_optical_flow_pipeline/samples.py', 'src/raft_optical_flow_pipeline/pipeline.py'], 'module_sha256': 'ea1f6e775e44a1744952e0276e8a7295523a0456be63b5d27fbe553dbdb1a45a', 'generator': 'build_notebook.py/2.2', 'notebook_spec': '2.2'}, 'python': '3.12.12', 'executable': '/content/dimer_isolated_env_72a13d82ae25/bin/python', 'torch': '2.14.0+cu130', 'torchvision': '0.29.0+cu130', 'numpy': '2.5.3', 'PIL': '11.3.0', 'cuda': True}
+[colab] Executing cell 3/15 - raft_optical_flow-08...
+[colab] Executing cell 4/15 - raft_optical_flow-10...
+[colab] Executing cell 5/15 - Infrastructure: stage and digest-verify the pinned snapshot, then load the model...
+{'model_id': 'torchvision/raft_large', 'revision': 'ff5fadd56d26b40647388883af1547351ea17868b765c05b27231e72dd16a322', 'license': 'bsd-3-clause', 'files': 1, 'total_bytes': 21106607}
+{'weights_dir': '/content/weights/raft-large-c-t-skht-v2', 'fetched': ['raft_large_C_T_SKHT_V2-ff5fadd5.pth']}
+{'verified_files': 1, 'revision': 'ff5fadd56d26b40647388883af1547351ea17868b765c05b27231e72dd16a322'}
+{'device': 'cuda:0', 'source': '/content/weights/raft-large-c-t-skht-v2'}
+[colab] Executing cell 6/15 - raft_optical_flow-14...
+{'MIN_IMAGE_SIDE': 128, 'MAX_IMAGE_SIDE': 1024, 'MAX_PIXELS': 786432, 'DEFAULT_FLOW_UPDATES': 12, 'MAX_FLOW': 400.0}
+{'sample_kind': 'synthetic', 'size': [256, 256], 'sha256': '82d915fca854a1b9', 'background_shift': [-6, 3], 'objects': [('disc', [11, 12]), ('disc', [7, 4])], 'valid_fraction': 0.946}
+{'verdict': 'accepted', 'padding': [0, 0], 'findings': [{'probe': 'frames of different sizes', 'rejected': 'frames differ in size: (256, 256) vs (128, 128)'}]}
+                EPE     1px     3px     5px    angle
+RAFT          0.162   0.988   0.991   0.993     0.94
+zero-flow     6.894   0.000   0.000   0.000    81.64
+{'verdict': 'sample-sanity', 'valid_pixels': 61968}
+frame 1 | frame 2 | true flow | predicted flow (hue = direction, saturation = speed)
+<PIL.Image.Image image mode=RGB size=1024x256 at 0x7EA6FDD240E0>
+
+[Image saved to: /tmp/tmpvm0y5vsk.png]
+[colab] Executing cell 7/15 - raft_optical_flow-17...
+ 1 updates {'epe': 0.4254, '1px': 0.9685, '3px': 0.9799, '5px': 0.9822, 'angular_error_deg': 1.9561}
+ 4 updates {'epe': 0.1714, '1px': 0.9889, '3px': 0.9922, '5px': 0.9936, 'angular_error_deg': 0.9482}
+12 updates {'epe': 0.1625, '1px': 0.9882, '3px': 0.9914, '5px': 0.9927, 'angular_error_deg': 0.9395}
+32 updates {'epe': 0.1893, '1px': 0.9864, '3px': 0.9899, '5px': 0.9915, 'angular_error_deg': 1.0122}
+{
+  "static": {
+    "epe_vs_zero_truth": 0.0095,
+    "max_displacement_px": 0.0393
+  },
+  "blank": {
+    "epe_vs_zero_truth": 0.2425,
+    "max_displacement_px": 0.8614
+  }
+}
+[colab] Executing cell 8/15 - raft_optical_flow-20...
+{
+  "n_records": 40,
+  "frame_sizes": [
+    [
+      256,
+      256
+    ]
+  ],
+  "mean_displacement_px": 5.306044811010361,
+  "max_mean_displacement_px": 8.761307716369629,
+  "mean_valid_fraction": 0.9544906616210938,
+  "epochs": 3,
+  "findings": [],
+  "verdict": "accepted"
+}
+<PIL.Image.Image image mode=RGB size=480x320 at 0x7EA6FDD38050>
+
+[Image saved to: /tmp/tmp67zt42gh.png]
+[colab] Executing cell 9/15 - raft_optical_flow-22...
+{'train': 30, 'held_out': 10}
+{
+  "pretrained": {
+    "epe": 0.1649,
+    "1px": 0.9855,
+    "3px": 0.9913,
+    "5px": 0.9938,
+    "angular_error_deg": 1.3134
+  },
+  "zero_flow": {
+    "epe": 4.9648,
+    "1px": 0.0018,
+    "3px": 0.192,
+    "5px": 0.6527,
+    "angular_error_deg": 75.3039
+  }
+}
+[colab] Executing cell 10/15 - raft_optical_flow-25...
+{'adapter': 'rebuilt from the verified checkpoint', 'adapted': False}
+epoch 1/3  loss 0.4394
+epoch 2/3  loss 0.3890
+epoch 3/3  loss 0.3614
+{
+  "freeze_encoders": true,
+  "batchnorm": "frozen (eval mode)",
+  "trainable_parameters": 3120960,
+  "total_parameters": 5257536,
+  "epochs": 3,
+  "batch_size": 2,
+  "learning_rate": 2e-05,
+  "optimizer": "AdamW",
+  "loss": "RAFT sequence loss (L1, gamma 0.8, displacements >= 400 px ignored)",
+  "precision": "float32",
+  "device": "cuda:0",
+  "epoch_losses": [
+    0.4394022345542908,
+    0.38898255228996276,
+    0.36142701109250386
+  ]
+}
+[colab] Executing cell 11/15 - raft_optical_flow-28...
+metric              zero-flow  pretrained    adapted     change
+epe                    4.9648      0.1649     0.1446    -0.0203
+1px                    0.0018      0.9855     0.9878    +0.0022
+3px                    0.1920      0.9913     0.9925    +0.0012
+5px                    0.6527      0.9938     0.9945    +0.0007
+angular_error_deg     75.3039      1.3134     1.1965    -0.1169
+pixel_weighted_epe     4.9421      0.1638     0.1435    -0.0203
+[colab] Executing cell 12/15 - raft_optical_flow-32...
+{"id": "pair-9900000", "mean_true_displacement_px": 4.34, "pretrained_epe": 0.0978, "adapted_epe": 0.0921}
+{"id": "pair-9900001", "mean_true_displacement_px": 7.04, "pretrained_epe": 0.0976, "adapted_epe": 0.0987}
+{"id": "pair-9900002", "mean_true_displacement_px": 6.624, "pretrained_epe": 0.2836, "adapted_epe": 0.2161}
+[colab] Executing cell 13/15 - raft_optical_flow-35...
+{
+  "path": "outputs/raft_adapter.safetensors",
+  "bytes": 12487632,
+  "sha256": "d58f43188290ec1045d2ad05b05da527e02c9f4de7baa371110cb88bbf9a8c67",
+  "format": "raft-adapter-v1",
+  "tensors": 30,
+  "frozen_prefixes": [
+    "feature_encoder.",
+    "context_encoder."
+  ],
+  "base_state_digest": "ff5fadd56d26b40647388883af1547351ea17868b765c05b27231e72dd16a322",
+  "model_id": "torchvision/raft_large",
+  "model_revision": "ff5fadd56d26b40647388883af1547351ea17868b765c05b27231e72dd16a322"
+}
+{'reloaded_source': 'artifact:raft_adapter.safetensors', 'adapted': True, 'frozen_prefixes': ['feature_encoder.', 'context_encoder.']}
+{'pair': 'pair-9900000', 'mean_endpoint_difference_px': 0.0, 'tolerance_px': 0.001, 'equivalent': True}
+[colab] Executing cell 14/15 - raft_optical_flow-38...
+  raft_adapter.safetensors                       12,487,632 bytes
+  raft_optical_flow_evaluation_report.json              990 bytes
+  raft_optical_flow_flow.flo                        524,300 bytes
+  raft_optical_flow_flow.npy                        524,416 bytes
+  raft_optical_flow_flow.png                         10,233 bytes
+  raft_optical_flow_input_manifest.json               1,147 bytes
+  raft_optical_flow_metrics.csv                         567 bytes
+  raft_optical_flow_result.json                       6,371 bytes
+[colab] Executing cell 15/15 - raft_optical_flow-40...
+refused as expected: non-image object -> TypeError: image1 must be a PIL.Image.Image, got str
+refused as expected: flow of the wrong shape -> ValueError: record 0: flow shape (8, 8, 2) != (256, 256, 2)
+BYOD frame-pair branch is off; set USE_BYOD_IMAGE = True to estimate flow between your own two frames.
+BYOD dataset branch is off; set USE_BYOD_DATASET = True to adapt RAFT on your own frame pairs with ground-truth flow.
+[colab] Saving notebook with outputs to '/home/kurt/colab-runs/raft-optical-flow-pipeline-e3e3bb5-15ac8a/raft_optical_flow_colab_e3e3bb5_colab-cli-t4_output.ipynb'...
