@@ -49,7 +49,8 @@ The checkpoint is pinned (see [Upstream alignment](#upstream-alignment)). To re-
 ```
 weights/raft-large-c-t-skht-v2/
   dimer-base-manifest.json                  # modelId, revision, url, bytes + SHA-256 (1 file)
-  raft_large_C_T_SKHT_V2-ff5fadd5.pth       # git-ignored; staged from download.pytorch.org
+  raft_large_C_T_SKHT_V2-ff5fadd5.pth       # git-ignored; staged from download.pytorch.org, read once to convert
+  raft_large_C_T_SKHT_V2-ff5fadd5.safetensors   # git-ignored; the served file, SHA-256 fb8ff0d40a51…
 ```
 
 ## Input ceilings
