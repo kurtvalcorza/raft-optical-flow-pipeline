@@ -559,7 +559,9 @@ TEMPLATE = {
                 "Set `BYOD_IMAGE1_PATH` and `BYOD_IMAGE2_PATH`, or `BYOD_DATASET_DIR`, to read from a mounted or local location; leave them empty "
                 "on Colab to get an upload dialog instead (for the pair branch, upload both frames at once; they are ordered by file name). "
                 "Uploaded files are written under `outputs/byod/` in this runtime and are not sent anywhere else. The first lines of the cell show "
-                "the validator refusing two malformed inputs with messages that name the failed rule."
+                "the validator refusing two malformed inputs with messages that name the failed rule. When a branch refuses your input, the "
+                "cell stops with one line, `Refused: <file>: <reason and fix>`, and removes that branch's earlier results from the session and "
+                "from `outputs/`, so nothing from an earlier run can pass as a result of your input; fix the named file and run the cell again."
             ),
             "code": (
                 'USE_BYOD_IMAGE = False  # @param {{type:"boolean"}}\n'
@@ -579,41 +581,91 @@ TEMPLATE = {
                 "        print(f'refused as expected: {{desc}} -> {{type(exc).__name__}}: {{exc}}')\n\n"
                 "BYOD_DIR = OUTPUTS / 'byod'\n"
                 "BYOD_MIN_HELD_OUT = 5  # fewer held-out pairs than this prints a small-split warning\n\n"
-                "def _upload_into(target, fields):\n"
-                "    try:\n"
-                "        from google.colab import files  # type: ignore[import-not-found]\n"
-                "    except ImportError:\n"
-                "        raise ValueError(f'The upload dialog exists only on Google Colab. Set {{fields}} to a local or mounted path '\n"
-                "                         'and run this cell again.') from None\n"
-                "    target.mkdir(parents=True, exist_ok=True)\n"
-                "    for name, data in files.upload().items():\n"
-                "        (target / Path(name).name).write_bytes(data)\n"
-                "    return target\n\n"
-                "if USE_BYOD_IMAGE:\n"
-                "    if BYOD_IMAGE1_PATH and BYOD_IMAGE2_PATH:\n"
-                "        frame_paths = [Path(BYOD_IMAGE1_PATH), Path(BYOD_IMAGE2_PATH)]\n"
-                "    else:\n"
-                "        frame_paths = sorted(p for p in _upload_into(BYOD_DIR / 'pair', 'BYOD_IMAGE1_PATH and BYOD_IMAGE2_PATH').iterdir() if p.is_file())[:2]\n"
-                "    if len(frame_paths) != 2:\n"
-                "        raise ValueError(f'the frame-pair branch needs exactly two frames, got {{len(frame_paths)}}')\n"
-                "    byod_frames = []\n"
-                "    for frame_path in frame_paths:\n"
-                "        with Image.open(frame_path) as handle:\n"
-                "            byod_frames.append(handle.convert('RGB'))\n"
-                "    print(validate_inputs(*byod_frames, num_flow_updates=NUM_FLOW_UPDATES)['verdict'], [p.name for p in frame_paths])\n"
-                "    byod_result = pipe.estimate(*byod_frames, num_flow_updates=NUM_FLOW_UPDATES)\n"
+                'class BYODRefusal(ValueError):\n'
+                '    """A refused BYOD input: ``BYODRefusal(file_name, reason_and_fix)``."""\n\n'
+                '    dimer_refusal = True\n\n'
+                '    def __init__(self, file_name, reason):\n'
+                '        super().__init__(f"{{file_name}}: {{reason}}")\n'
+                '        self.file_name = file_name\n'
+                '        self.reason = reason\n\n'
+                '    def _render_traceback_(self):\n'
+                '        return [f"Refused: {{self}}"]\n\n\n'
+                '# The results an earlier run of each branch left in this session and in outputs/. A refused input removes them (DAT20),\n'
+                '# so none of them can pass as a result of the refused input.\n'
+                "BYOD_IMAGE_RESULTS = (('byod_frames', 'byod_result', 'byod_report'), ('byod_flow.flo', 'byod_flow.png'))\n"
+                'BYOD_DATASET_RESULTS = (\n'
+                "    ('byod_records', 'byod_manifest', 'byod_train', 'byod_held', 'byod_pipe', 'byod_baseline', 'byod_run', 'byod_adapted', 'byod_artifact',\n"
+                "     'byod_descriptor', 'byod_reloaded', 'byod_probe', 'byod_flows', 'byod_difference', 'byod_reload_check', 'byod_export'),\n"
+                "    ('byod_result.json', 'byod_raft_adapter.safetensors'),\n"
+                ')\n\n\n'
+                'def refuse_byod(file_name, reason, results):\n'
+                '    """Remove the branch\'s earlier results, then stop the cell with one Refused: line naming the file and the fix."""\n'
+                '    names, files_written = results\n'
+                '    for name in names:\n'
+                '        globals().pop(name, None)\n'
+                '    for name in files_written:\n'
+                '        (OUTPUTS / name).unlink(missing_ok=True)\n'
+                "    reason = str(reason).removeprefix(f'{{file_name}}: ').rstrip('. ')\n"
+                "    if 'again' not in reason:\n"
+                "        reason += '; fix the input and run this cell again'\n"
+                "    raise BYODRefusal(file_name, reason + ' (the earlier results of this branch were removed).') from None\n\n\n"
+                'def _upload_into(target, fields):\n'
+                '    try:\n'
+                '        from google.colab import files  # type: ignore[import-not-found]\n'
+                '    except ImportError:\n'
+                "        raise BYODRefusal('(no file)', f'The upload dialog exists only on Google Colab. Set {{fields}} to a local or mounted path '\n"
+                "                          'and run this cell again.') from None\n"
+                '    uploaded = files.upload() or {{}}\n'
+                '    if not uploaded:\n'
+                "        raise BYODRefusal('(no file)', 'the upload was cancelled or empty: run this cell again and choose your files')\n"
+                '    target.mkdir(parents=True, exist_ok=True)\n'
+                '    for name, data in uploaded.items():\n'
+                '        (target / Path(name).name).write_bytes(data)\n'
+                '    return target\n\n'
+                'if USE_BYOD_IMAGE:\n'
+                '    # DAT20: every problem with your two frames (paths, upload, decoding, validation) stops here as one Refused: line.\n'
+                "    byod_file = ' + '.join(Path(p).name for p in (BYOD_IMAGE1_PATH, BYOD_IMAGE2_PATH) if p) or '(no file)'\n"
+                '    try:\n'
+                '        if BYOD_IMAGE1_PATH and BYOD_IMAGE2_PATH:\n'
+                '            frame_paths = [Path(BYOD_IMAGE1_PATH), Path(BYOD_IMAGE2_PATH)]\n'
+                '        else:\n'
+                "            frame_paths = sorted(p for p in _upload_into(BYOD_DIR / 'pair', 'BYOD_IMAGE1_PATH and BYOD_IMAGE2_PATH').iterdir() if p.is_file())[:2]\n"
+                "        byod_file = ' + '.join(p.name for p in frame_paths) or byod_file\n"
+                '        if len(frame_paths) != 2:\n'
+                "            raise BYODRefusal(byod_file, f'the frame-pair branch needs exactly two frames, got {{len(frame_paths)}}: upload both frames at once')\n"
+                '        for frame_path in frame_paths:\n'
+                '            if not frame_path.is_file():\n'
+                "                raise BYODRefusal(frame_path.name or str(frame_path), f'{{str(frame_path)!r}} is not a file (relative paths start at {{Path.cwd()}}): '\n"
+                "                                  'give the path of an image file PIL can open')\n"
+                '        byod_frames = []\n'
+                '        for frame_path in frame_paths:\n'
+                '            with Image.open(frame_path) as handle:\n'
+                "                byod_frames.append(handle.convert('RGB'))\n"
+                "        print(validate_inputs(*byod_frames, num_flow_updates=NUM_FLOW_UPDATES)['verdict'], [p.name for p in frame_paths])\n"
+                '    except BYODRefusal as exc:\n'
+                '        refuse_byod(exc.file_name, exc.reason, BYOD_IMAGE_RESULTS)\n'
+                '    except (TypeError, ValueError, OSError) as exc:\n'
+                '        refuse_byod(byod_file, exc, BYOD_IMAGE_RESULTS)\n'
+                '    byod_result = pipe.estimate(*byod_frames, num_flow_updates=NUM_FLOW_UPDATES)\n'
                 "    byod_report = evaluation_report(byod_result, sample_kind='byod')\n"
                 "    print({{'verdict': byod_report['verdict'], 'mean_predicted_displacement_px': round(byod_report['mean_predicted_displacement_px'], 3)}})\n"
                 "    write_flo(OUTPUTS / 'byod_flow.flo', byod_result['flow'])\n"
                 "    flow_to_rgb(byod_result['flow']).save(OUTPUTS / 'byod_flow.png')\n"
-                "else:\n"
+                'else:\n'
                 "    print('BYOD frame-pair branch is off; set USE_BYOD_IMAGE = True to estimate flow between your own two frames.')\n\n"
-                "if USE_BYOD_DATASET:\n"
-                "    dataset_dir = Path(BYOD_DATASET_DIR) if BYOD_DATASET_DIR else _upload_into(BYOD_DIR / 'dataset', 'BYOD_DATASET_DIR')\n"
-                "    byod_records = read_flow_records(dataset_dir)\n"
-                "    byod_manifest = validate_dataset(byod_records, epochs=EPOCHS)\n"
-                "    print(json.dumps(byod_manifest, indent=2))\n"
-                "    byod_train, byod_held = split_pairs(byod_records, train_fraction=1.0 - HOLDOUT, seed=SEED)\n"
+                'if USE_BYOD_DATASET:\n'
+                '    # DAT20: every problem with your dataset (path, upload, pairs.json, frames, flow, validation, split) stops here as one Refused: line.\n'
+                "    byod_file = (Path(BYOD_DATASET_DIR).name or BYOD_DATASET_DIR) if BYOD_DATASET_DIR else '(no file)'\n"
+                '    try:\n'
+                "        dataset_dir = Path(BYOD_DATASET_DIR) if BYOD_DATASET_DIR else _upload_into(BYOD_DIR / 'dataset', 'BYOD_DATASET_DIR')\n"
+                '        byod_records = read_flow_records(dataset_dir)\n'
+                '        byod_manifest = validate_dataset(byod_records, epochs=EPOCHS)\n'
+                '        byod_train, byod_held = split_pairs(byod_records, train_fraction=1.0 - HOLDOUT, seed=SEED)\n'
+                '    except BYODRefusal as exc:\n'
+                '        refuse_byod(exc.file_name, exc.reason, BYOD_DATASET_RESULTS)\n'
+                '    except (TypeError, ValueError, OSError) as exc:\n'
+                '        refuse_byod(byod_file, exc, BYOD_DATASET_RESULTS)\n'
+                '    print(json.dumps(byod_manifest, indent=2))\n'
                 "    print({{'train': len(byod_train), 'held_out': len(byod_held)}})\n"
                 "    if len(byod_held) < BYOD_MIN_HELD_OUT:\n"
                 "        print(f'WARNING: only {{len(byod_held)}} held-out pair(s). The scores below are anecdotes, not an estimate; '\n"
