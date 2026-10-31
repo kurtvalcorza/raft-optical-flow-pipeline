@@ -1,0 +1,79 @@
+{
+  "repo": "raft-optical-flow-pipeline",
+  "sha": "c0dc74de3687e731d2d552527b2d395e4b2fe36a",
+  "notebook": "tutorials/raft_optical_flow_colab.ipynb",
+  "blob": "3b3085f450828d2797c70ee55c3801dd3d6987ec",
+  "gpu": "T4",
+  "session": "suite-raft-c0dc74d-15ac",
+  "started_utc": "2026-10-29T22:12:48+00:00",
+  "runner": "Colab CLI `colab exec -f` on a fresh session (not a browser Run all)",
+  "overrides": [
+    {
+      "name": "USE_BYOD_DATASET",
+      "from": "False",
+      "to": "True"
+    },
+    {
+      "name": "BYOD_DATASET_DIR",
+      "from": "\\\"\\\"",
+      "to": "'/etc'"
+    }
+  ],
+  "run_copy_blob": "cc5ab652d9c5453e7b1503f61a1cd357bbd8ca90",
+  "run_copy_sha256": "69a720ddfef9b5b98f60e857da113b6839f82d8067545f3e673d1b58ffd212eb",
+  "run_copy_note": "refusal run: the run copy is the committed notebook with the listed assignment overrides, cut immediately after the refusal cell and re-serialised (nbformat layout); input_unchanged compares against that copy",
+  "truncated_after_cell": "raft_optical_flow-40",
+  "refusal_cell_ref": "raft_optical_flow-40",
+  "refusal_cell_index": 15,
+  "cells_dropped": 1,
+  "code_cells_dropped": 0,
+  "original_sha256": "8c782321fe78e12c626137a95ce2661db0e8474f8b7c06b1ad9b18b499fd9e4f",
+  "status": "[suite-raft-c0dc74d-15ac] gpu-t4-s-usw1b2-ok1e16n4q3vr | Hardware: T4 | Shape: Standard | Variant: GPU | Status: IDLE",
+  "exec_exit_code": 0,
+  "stopped": true,
+  "stop_verified": true,
+  "wall_s": 96.0,
+  "input_unchanged": true,
+  "executed_file": "raft_optical_flow_colab_c0dc74d_colab-cli-t4_output.ipynb",
+  "log_cells": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15
+  ],
+  "log_total": 15,
+  "code_cells": 15,
+  "executed_cells": 13,
+  "errors": [
+    {
+      "cell": "raft_optical_flow-40",
+      "ename": "IsolatedCellRefusal",
+      "evalue": "etc: /etc/pairs.json not found; expected pairs.json next to the frames; fix the input and run this cell again (the earlier results of this branch were removed)."
+    }
+  ],
+  "execution_counts": [],
+  "sequential": null,
+  "executed_sha256": "6573b9d7d7a4e590f47fa23d709597f19909d43ac228bf767c28abd08edcd892",
+  "log_sequential_complete": true,
+  "mode": "expect_refusal",
+  "refusal_line": "Refused: etc: /etc/pairs.json not found; expected pairs.json next to the frames; fix the input and run this cell again (the earlier results of this branch were removed).",
+  "halting_cell_index": 15,
+  "halting_cell_id": "raft_optical_flow-40",
+  "error_cells": [
+    15
+  ],
+  "refusal_fail_reasons": [],
+  "refusal_ok": true,
+  "verdict": "PASS"
+}
