@@ -624,6 +624,8 @@ TEMPLATE = {
                 '    return target\n\n'
                 'if USE_BYOD_IMAGE:\n'
                 '    # DAT20: every problem with your two frames (paths, upload, decoding, validation) stops here as one Refused: line.\n'
+                '    # Caught: ValueError (validate_inputs) and OSError only around Image.open/convert, where it means Pillow cannot open\n'
+                '    # or decode a frame. TypeError is not caught: validate_inputs always gets PIL images here, so a TypeError is a bug.\n'
                 "    byod_file = ' + '.join(Path(p).name for p in (BYOD_IMAGE1_PATH, BYOD_IMAGE2_PATH) if p) or '(no file)'\n"
                 '    try:\n'
                 '        if BYOD_IMAGE1_PATH and BYOD_IMAGE2_PATH:\n'
@@ -639,12 +641,15 @@ TEMPLATE = {
                 "                                  'give the path of an image file PIL can open')\n"
                 '        byod_frames = []\n'
                 '        for frame_path in frame_paths:\n'
-                '            with Image.open(frame_path) as handle:\n'
-                "                byod_frames.append(handle.convert('RGB'))\n"
+                '            try:\n'
+                '                with Image.open(frame_path) as handle:\n'
+                "                    byod_frames.append(handle.convert('RGB'))\n"
+                '            except OSError as exc:\n'
+                "                raise BYODRefusal(byod_file, f'{{frame_path.name}} is not an image file Pillow can open ({{type(exc).__name__}}: {{exc}}); give two PNG or JPEG frames') from None\n"
                 "        print(validate_inputs(*byod_frames, num_flow_updates=NUM_FLOW_UPDATES)['verdict'], [p.name for p in frame_paths])\n"
                 '    except BYODRefusal as exc:\n'
                 '        refuse_byod(exc.file_name, exc.reason, BYOD_IMAGE_RESULTS)\n'
-                '    except (TypeError, ValueError, OSError) as exc:\n'
+                '    except ValueError as exc:\n'
                 '        refuse_byod(byod_file, exc, BYOD_IMAGE_RESULTS)\n'
                 '    byod_result = pipe.estimate(*byod_frames, num_flow_updates=NUM_FLOW_UPDATES)\n'
                 "    byod_report = evaluation_report(byod_result, sample_kind='byod')\n"
@@ -655,15 +660,21 @@ TEMPLATE = {
                 "    print('BYOD frame-pair branch is off; set USE_BYOD_IMAGE = True to estimate flow between your own two frames.')\n\n"
                 'if USE_BYOD_DATASET:\n'
                 '    # DAT20: every problem with your dataset (path, upload, pairs.json, frames, flow, validation, split) stops here as one Refused: line.\n'
+                '    # Caught: ValueError (read_flow_records, validate_dataset and split_pairs raise it for bad content, a JSON error\n'
+                '    # included) and OSError only around read_flow_records, where it means a file cannot be read or decoded. TypeError\n'
+                '    # is not caught: the reader always builds PIL frames and float arrays, so a TypeError is a bug and keeps its traceback.\n'
                 "    byod_file = (Path(BYOD_DATASET_DIR).name or BYOD_DATASET_DIR) if BYOD_DATASET_DIR else '(no file)'\n"
                 '    try:\n'
                 "        dataset_dir = Path(BYOD_DATASET_DIR) if BYOD_DATASET_DIR else _upload_into(BYOD_DIR / 'dataset', 'BYOD_DATASET_DIR')\n"
-                '        byod_records = read_flow_records(dataset_dir)\n'
+                '        try:\n'
+                '            byod_records = read_flow_records(dataset_dir)\n'
+                '        except OSError as exc:\n'
+                "            raise BYODRefusal(byod_file, f'the dataset cannot be read ({{type(exc).__name__}}: {{exc}}); give a folder holding pairs.json and the files it names') from None\n"
                 '        byod_manifest = validate_dataset(byod_records, epochs=EPOCHS)\n'
                 '        byod_train, byod_held = split_pairs(byod_records, train_fraction=1.0 - HOLDOUT, seed=SEED)\n'
                 '    except BYODRefusal as exc:\n'
                 '        refuse_byod(exc.file_name, exc.reason, BYOD_DATASET_RESULTS)\n'
-                '    except (TypeError, ValueError, OSError) as exc:\n'
+                '    except ValueError as exc:\n'
                 '        refuse_byod(byod_file, exc, BYOD_DATASET_RESULTS)\n'
                 '    print(json.dumps(byod_manifest, indent=2))\n'
                 "    print({{'train': len(byod_train), 'held_out': len(byod_held)}})\n"
