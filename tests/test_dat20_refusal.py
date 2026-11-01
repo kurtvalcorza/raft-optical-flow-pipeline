@@ -315,3 +315,82 @@ def test_default_path_does_not_refuse(cells, tmp_path, capsys):
     out = capsys.readouterr().out
     assert "BYOD frame-pair branch is off" in out and "BYOD dataset branch is off" in out
     assert "Refused:" not in out and ns["byod_result"] == "old"
+
+
+# --- the catches are narrow: only bad input is refused; an internal TypeError/KeyError/OSError keeps its traceback --
+
+
+def test_the_byod_catches_are_narrow_in_the_notebook_source(cells):
+    import re
+
+    branches = _source(_byod_cell(cells)).split("if USE_BYOD_IMAGE:\n", 1)[1]
+    caught = re.findall(r"^\s*except (.+?)(?: as \w+)?:$", branches, flags=re.M)
+    assert caught == ["OSError", "BYODRefusal", "ValueError", "OSError", "BYODRefusal", "ValueError"], caught
+    assert "            try:\n                with Image.open(frame_path) as handle:\n" in branches
+    assert "        try:\n            byod_records = read_flow_records(dataset_dir)\n        except OSError as exc:\n" in branches
+
+
+def test_a_truncated_frame_is_still_one_refused_line(cells, tmp_path, monkeypatch):
+    import io
+
+    monkeypatch.setitem(sys.modules, "google.colab", None)
+    buffer = io.BytesIO()
+    Image.new("RGB", (256, 256), (200, 30, 30)).save(buffer, format="PNG")
+    (tmp_path / "cut.png").write_bytes(buffer.getvalue()[:-60])
+    Image.new("RGB", (256, 256)).save(tmp_path / "b.png")
+    ns = _namespace(tmp_path)
+    code = _cell_code(cells, image=(str(tmp_path / "cut.png"), str(tmp_path / "b.png")))
+    _one_line(_run_refused(code, ns), "cut.png + b.png", "cut.png is not an image file Pillow can open (OSError: ")
+    assert not set(EARLIER_IMAGE) & set(ns)
+
+
+def test_an_undecodable_dataset_frame_is_still_one_refused_line(cells, tmp_path, monkeypatch):
+    monkeypatch.setitem(sys.modules, "google.colab", None)
+    folder = tmp_path / "ds"
+    folder.mkdir()
+    (folder / "pairs.json").write_text(json.dumps([{"frame1": "a.png", "frame2": "b.png", "flow": "a.npy"}]), encoding="utf-8")
+    (folder / "a.png").write_text("not an image", encoding="utf-8")
+    ns = _namespace(tmp_path)
+    _one_line(_run_refused(_cell_code(cells, dataset=str(folder)), ns), "ds", "the dataset cannot be read (UnidentifiedImageError: ")
+    assert not set(EARLIER_DATASET) & set(ns)
+
+
+@pytest.mark.parametrize("error", [TypeError("internal helper bug"), KeyError("internal key"), OSError("internal I/O bug")], ids=["TypeError", "KeyError", "OSError"])
+def test_an_internal_error_in_the_dataset_branch_keeps_its_traceback(cells, tmp_path, monkeypatch, error):
+    import traceback
+
+    monkeypatch.setitem(sys.modules, "google.colab", None)
+    ns = _namespace(tmp_path)
+    ns["read_flow_records"] = lambda _directory: [{"id": "a"}]
+
+    def broken_validate_dataset(records, **kwargs):
+        if "epochs" not in kwargs:  # the rejection demo in the same cell
+            return raft.validate_dataset(records, **kwargs)
+        raise error
+
+    ns["validate_dataset"] = broken_validate_dataset
+    with pytest.raises(type(error)) as caught:
+        exec(compile(_cell_code(cells, dataset=str(tmp_path)), "<section 13>", "exec"), ns)
+    assert caught.value is error and not getattr(caught.value, "dimer_refusal", False)
+    rendered = "".join(traceback.format_exception(caught.value))
+    assert rendered.startswith("Traceback") and "broken_validate_dataset" in rendered and "Refused:" not in rendered
+    assert ns["byod_adapted"] == "old" and (tmp_path / "outputs" / "byod_result.json").exists()  # nothing is cleared
+
+
+@pytest.mark.parametrize("error", [TypeError("internal helper bug"), OSError("internal I/O bug")], ids=["TypeError", "OSError"])
+def test_an_internal_error_in_the_frame_pair_branch_keeps_its_traceback(cells, tmp_path, monkeypatch, error):
+    monkeypatch.setitem(sys.modules, "google.colab", None)
+    Image.new("RGB", (256, 256)).save(tmp_path / "a.png")
+    Image.new("RGB", (256, 256)).save(tmp_path / "b.png")
+    ns = _namespace(tmp_path)
+
+    def broken_validate_inputs(*frames, **kwargs):
+        if "num_flow_updates" not in kwargs:  # the rejection demo in the same cell
+            return raft.validate_inputs(*frames, **kwargs)
+        raise error
+
+    ns["validate_inputs"] = broken_validate_inputs
+    with pytest.raises(type(error)) as caught:
+        exec(compile(_cell_code(cells, image=(str(tmp_path / "a.png"), str(tmp_path / "b.png"))), "<section 13>", "exec"), ns)
+    assert caught.value is error and not getattr(caught.value, "dimer_refusal", False)
+    assert ns["byod_result"] == "old"  # nothing is cleared for an internal error
